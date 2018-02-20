@@ -1,3 +1,9 @@
+# Drafts
+instructions.md
+
+# Output folder
+data
+
 # Logs
 logs
 *.log
@@ -56,4 +62,3 @@ typings/
 
 # dotenv environment variables file
 .env
-
