@@ -18,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/raphaelSeguin/content-scraper/issues"
   },
-  "homepage": "https://github.com/raphaelSeguin/content-scraper#readme"
+  "homepage": "https://github.com/raphaelSeguin/content-scraper#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "csv": "^2.0.0",
+    "jquery": "^3.3.1"
+  }
 }
