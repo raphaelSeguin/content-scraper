@@ -1,20 +1,51 @@
-// lancer le scraper sur l'URL de la homePage
-// récupérer les urls des pages tshirts => array
-// récupérer les infos de chaque t-shirt
-// Title, Price, ImageURL, URL, and Time (in that order)
-// écrire tout ça dans un CSV file
+// When an error occurs, log it to a file named scraper-error.log .
+// It should append to the bottom of the file with a time stamp and error e.g.
+// [Tue Feb 16 2016 10:02:12 GMT-0800 (PST)] <error message>
+
+
+// AMELIORATIONS
+// réécrire en encapsulant toutes les fonctions !
+// passer un objet s'il faut plusieurs arguments...
+// utiliser Promise.all pour d'un coté fs de l'autre les infos
+
 
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const http = require('http');
+const {URL} = require('url');
 const cheerio = require('cheerio');
-const csv = require('csv');
+const stringify = require('csv-stringify/lib/sync');
 
 // data
-const entryPointURL = 'http://shirts4mike.com/shirts.php';
+const bizData = {
+    entryPointURL: new URL('http://shirts4mike.com/shirts.phppppp'),
+    folderName: 'data',
+    logFileName: 'scraper-error.log',
+    goodbyeMessage: '\nThanks for using Scraper !\n',
+    getFileName: () => {
+        const date = new Date();
+        return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}.csv`
+    }
+}
 
-// function
+//----------------------------------------
+//                               FUNCTIONS
+//----------------------------------------
+const createFolder = path => {
+    return new Promise( (resolve, reject) => {
+        fs.mkdir(path, err => {
+            if ( !err || /EEXIST/.test(err.message) ) {
+                resolve(path);
+            } else {
+                reject('folder failure !\n' + err.message);
+            }
+        });
+    });
+}
+// in: url
+// out: html string
 const getPage = url => {
     return new Promise( (resolve, reject) => {
         let htmlString = '';
@@ -43,14 +74,40 @@ const getPage = url => {
         });
     });
 }
+// in: path, content
+const writeFile = (path, content) => {
+    return new Promise( (resolve, reject) => {
+        fs.writeFile(path, content, err => {
+            if (err) reject('file error !\n' + err);
+            else resolve('file written successfully !');
+        });
+    });
+};
+// in: path, content
+const appendFile = (path, content) => {
+    return new Promise( (resolve, reject) => {
+        fs.appendFile(path, content, err => {
+            if (err) reject('file append error !\n' + err);
+            else resolve('file appended successfully !');
+        });
+    });
+}
 
-// util
+//----------------------------------------
+//                                   UTILS
+//----------------------------------------
 const monitor = str => {
     console.log(str);
 }
 
-// biz
-getPage(entryPointURL)
+//----------------------------------------
+//                                   CHAIN
+//----------------------------------------
+
+getPage(bizData.entryPointURL)
+    .catch( rej => {
+            console.log('reject : \n' + rej);
+    })
     .then( page => {
         const links = [];
         const $ = cheerio.load(page.html);
@@ -59,15 +116,10 @@ getPage(entryPointURL)
         });
         return links;
     })
-    .then( urlsArray => {
+    .then( pathsArray => {
         return Promise.all(
-            urlsArray.map( (url) => {
-                //
-                //    HUM HUM HUM
-                //
-                const tShirtUrl = 'http://shirts4mike.com/' + url;
-
-
+            pathsArray.map( (path) => {
+                const tShirtUrl = bizData.entryPointURL.origin + '/' + path;
                 return getPage(tShirtUrl);
             })
         );
@@ -80,46 +132,74 @@ getPage(entryPointURL)
             infos.price = $('.shirt-details h1 span').text();
             infos.image = $('img').attr('src');
             infos.url = page.url;
-            infos.time = Date.now();
+            infos.time = new Date().toTimeString();
             return infos;
         })
     })
-    .then(
-        monitor
-        //Title, Price, ImageURL, URL, and Time (in that order)
-    )
-    //.then( monitor )
-    /*
-    .then( array => {
-        array.forEach( element => {
-             console.log(element);
-         });
-    })
-    .catch( err => console.log('ERRRORRRRR : \r\n\r\n\r\n\r\n' + err + '\r\n\r\n\r\n\r\n'))
-    .then( getTshirtPages() )
-    .then( getTshirtInfos() )
-    .then( writeInfos() )
-    */
-
-/*
-fs.readdir('./data', (err, data) => {
-    if (err) {
-        fs.mkdir('./data', err => {
-            if (err) {
-                console.log(err);
-            }
+    .then( infosArray => {
+        return infosArray.map( obj => {
+            const {title, price, image, url, time} = obj;
+            const row = [title, price, image, url, time];
+            return row;
         });
-    }
-    const stream = fs.createWriteStream('./data/bibi.txt');
-    let c = 2500;
-    while (c > 0) {
-        stream.write(String.fromCharCode(Math.floor(Math.random() * (0xFFFF + 1))));
-        if (c % 40 === 0) {
-            stream.write('\n');
+    })
+    .then( stringify )
+    .then( str => bizData.fileContent = str)
+    .then( () => {
+        return createFolder(bizData.folderName);
+    })
+    .then( folderPath => writeFile( path.join(folderPath, bizData.getFileName()), bizData.fileContent ))
+    .then( monitor )
+    .catch( err => console.log('ERROR :' + err) )
+    //       WTF!!!!!!!!
+    //       WTF!!!!!!!!
+    //       WTF!!!!!!!!
+    .then( (onResolve, onReject) => {
+        const logTime = `[${new Date().toString()}] `;
+        if (onReject) {
+            return appendFile(bizData.logFileName, logTime + onReject + '\n');
+        } else {
+            return appendFile(bizData.logFileName, logTime + 'all good\n');
         }
-        c--;
-    }
-    stream.end();
-});
-*/
-//fs.writeFile('./data/message.txt', 'Hello Node.js', 'utf8', err => console.log(err) );
+    })
+    //       WTF!!!!!!!!
+    //       WTF!!!!!!!!
+    //       WTF!!!!!!!!
+    .then( (any, way) => console.log(bizData.goodbyeMessage))
+
+
+
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
+
+// -!-!-!-!-!-!-!-!-!-!-!-
