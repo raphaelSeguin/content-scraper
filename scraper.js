@@ -108,9 +108,6 @@ getPage(bizData.entryPointURL)
         console.log(err.message);
         appendFile(bizData.logFileName, logTime + err.message + '\n');
     })
-    .catch( rej => {
-            console.log('\n' + rej + '\n');
-    })
     .then( page => {
         const links = [];
         const $ = cheerio.load(page.html);
@@ -154,17 +151,7 @@ getPage(bizData.entryPointURL)
     .then( folderPath => writeFile( path.join(folderPath, bizData.getFileName()), bizData.fileContent ))
     .then( monitor )
     .catch( err => {} )
-    //       WTF!!!!!!!!
-    //       WTF!!!!!!!!
-    //       WTF!!!!!!!!
-
-    //       WTF!!!!!!!!
-    //       WTF!!!!!!!!
-    //       WTF!!!!!!!!
     .then( (any, way) => console.log(bizData.goodbyeMessage))
-    //.catch( err => {});
-
-
 
 // -!-!-!-!-!-!-!-!-!-!-!-
 
