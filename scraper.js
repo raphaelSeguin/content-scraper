@@ -1,12 +1,3 @@
-// When an error occurs, log it to a file named scraper-error.log .
-// It should append to the bottom of the file with a time stamp and error e.g.
-// [Tue Feb 16 2016 10:02:12 GMT-0800 (PST)] <error message>
-
-
-// AMELIORATIONS
-// réécrire en encapsulant toutes les fonctions !
-// passer un objet s'il faut plusieurs arguments...
-// utiliser Promise.all pour d'un coté fs de l'autre les infos
 
 'use strict';
 
@@ -32,6 +23,7 @@ const bizData = {
 //----------------------------------------
 //                               FUNCTIONS
 //----------------------------------------
+
 const createFolder = path => {
     return new Promise( (resolve, reject) => {
         fs.mkdir(path, err => {
@@ -43,8 +35,7 @@ const createFolder = path => {
         });
     });
 }
-// in: url
-// out: page object { htmlString, url }
+// takes an url and returns a page object { htmlString, url }
 const getPage = url => {
     return new Promise( (resolve, reject) => {
         let htmlString = '';
@@ -72,7 +63,7 @@ const getPage = url => {
         });
     });
 }
-// in: path, content
+// takes a path and content; writes a file.
 const writeFile = (path, content) => {
     return new Promise( (resolve, reject) => {
         fs.writeFile(path, content, err => {
@@ -81,7 +72,7 @@ const writeFile = (path, content) => {
         });
     });
 };
-// in: path, content
+// takes a path and content; append to a file.
 const appendFile = (path, content) => {
     return new Promise( (resolve, reject) => {
         fs.appendFile(path, content, err => {
@@ -92,22 +83,10 @@ const appendFile = (path, content) => {
 }
 
 //----------------------------------------
-//                                   UTILS
-//----------------------------------------
-const monitor = str => {
-    console.log(str);
-}
-
-//----------------------------------------
-//                                   CHAIN
+//                           PROMISE CHAIN
 //----------------------------------------
 
 getPage(bizData.entryPointURL)
-    .catch( err => {
-        const logTime = `[${new Date().toString()}] `;
-        console.log(err.message);
-        appendFile(bizData.logFileName, logTime + err.message + '\n');
-    })
     .then( page => {
         const links = [];
         const $ = cheerio.load(page.html);
@@ -145,44 +124,11 @@ getPage(bizData.entryPointURL)
     })
     .then( stringify )
     .then( str => bizData.fileContent = str)
-    .then( () => {
-        return createFolder(bizData.folderName);
-    })
+    .then( () => createFolder(bizData.folderName) )
     .then( folderPath => writeFile( path.join(folderPath, bizData.getFileName()), bizData.fileContent ))
-    .then( monitor )
-    .catch( err => {} )
-    .then( (any, way) => console.log(bizData.goodbyeMessage))
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
-
-// -!-!-!-!-!-!-!-!-!-!-!-
+    .catch( err => {
+        const logTime = `[${new Date().toString()}] `;
+        console.log('\n' + err.message);
+        appendFile(bizData.logFileName, logTime + err.message + '\n');
+    })
+    .then( () => console.log(bizData.goodbyeMessage) )
