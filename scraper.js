@@ -8,7 +8,6 @@
 // passer un objet s'il faut plusieurs arguments...
 // utiliser Promise.all pour d'un coté fs de l'autre les infos
 
-
 'use strict';
 
 const fs = require('fs');
@@ -20,7 +19,7 @@ const stringify = require('csv-stringify/lib/sync');
 
 // data
 const bizData = {
-    entryPointURL: new URL('http://shirts4mike.com/shirts.phppppp'),
+    entryPointURL: new URL('http://shirts4mike.com/shirts.php'),
     folderName: 'data',
     logFileName: 'scraper-error.log',
     goodbyeMessage: '\nThanks for using Scraper !\n',
@@ -45,7 +44,7 @@ const createFolder = path => {
     });
 }
 // in: url
-// out: html string
+// out: page object { htmlString, url }
 const getPage = url => {
     return new Promise( (resolve, reject) => {
         let htmlString = '';
@@ -54,8 +53,7 @@ const getPage = url => {
 
             let error;
             if (statusCode !== 200) {
-                error = new Error('Request Failed.\n' +
-                    `Status Code: ${statusCode}`);
+                const error = new Error("Error, impossible to reach www.shirts4mike.com/");
                 reject(error);
             }
             res.setEncoding('utf8');
@@ -105,8 +103,13 @@ const monitor = str => {
 //----------------------------------------
 
 getPage(bizData.entryPointURL)
+    .catch( err => {
+        const logTime = `[${new Date().toString()}] `;
+        console.log(err.message);
+        appendFile(bizData.logFileName, logTime + err.message + '\n');
+    })
     .catch( rej => {
-            console.log('reject : \n' + rej);
+            console.log('\n' + rej + '\n');
     })
     .then( page => {
         const links = [];
@@ -150,23 +153,16 @@ getPage(bizData.entryPointURL)
     })
     .then( folderPath => writeFile( path.join(folderPath, bizData.getFileName()), bizData.fileContent ))
     .then( monitor )
-    .catch( err => console.log('ERROR :' + err) )
+    .catch( err => {} )
     //       WTF!!!!!!!!
     //       WTF!!!!!!!!
     //       WTF!!!!!!!!
-    .then( (onResolve, onReject) => {
-        const logTime = `[${new Date().toString()}] `;
-        if (onReject) {
-            return appendFile(bizData.logFileName, logTime + onReject + '\n');
-        } else {
-            return appendFile(bizData.logFileName, logTime + 'all good\n');
-        }
-    })
+
     //       WTF!!!!!!!!
     //       WTF!!!!!!!!
     //       WTF!!!!!!!!
     .then( (any, way) => console.log(bizData.goodbyeMessage))
-
+    //.catch( err => {});
 
 
 
