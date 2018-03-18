@@ -41,10 +41,9 @@ const getPage = url => {
         let htmlString = '';
         http.get( url, (res) => {
             const { statusCode } = res;
-
             let error;
             if (statusCode !== 200) {
-                const error = new Error("Error, impossible to reach www.shirts4mike.com/");
+                error = new Error("Error, impossible to reach www.shirts4mike.com/");
                 reject(error);
             }
             res.setEncoding('utf8');
@@ -59,7 +58,8 @@ const getPage = url => {
                 resolve(page);
             });
         }).on('error', (e) => {
-            reject(e);
+            let error = new Error("Error, impossible to reach www.shirts4mike.com/");
+            reject(error);
         });
     });
 }
@@ -123,7 +123,7 @@ getPage(bizData.entryPointURL)
         });
     })
     .then( stringify )
-    .then( str => bizData.fileContent = str)
+    .then( str => bizData.fileContent = "Title, Price, Image, URL, Time\n" + str )
     .then( () => createFolder(bizData.folderName) )
     .then( folderPath => writeFile( path.join(folderPath, bizData.getFileName()), bizData.fileContent ))
     .catch( err => {
